@@ -8,6 +8,8 @@ import '@questlabs/react-sdk/dist/style.css';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { DataProvider } from './contexts/DataContext';
 import { StripeProvider } from './contexts/StripeContext';
+import { PaymentProvider } from './contexts/PaymentContext';
+import { SessionProvider } from './contexts/SessionContext';
 import questConfig from './config/questConfig';
 
 // Pages
@@ -30,6 +32,7 @@ import TrainerDashboard from './pages/TrainerDashboard';
 import GymDirectory from './pages/GymDirectory';
 import GymDetails from './pages/GymDetails';
 import TrainerDirectory from './pages/TrainerDirectory';
+import SessionManagement from './pages/SessionManagement';
 
 // Components
 import LoadingSpinner from './components/LoadingSpinner';
@@ -78,7 +81,6 @@ function AppContent() {
     const timer = setTimeout(() => {
       setIsInitialized(true);
     }, 500);
-
     return () => clearTimeout(timer);
   }, []);
 
@@ -106,7 +108,8 @@ function AppContent() {
     window.location.hash.includes('/gym-directory') ||
     window.location.hash.includes('/trainer-directory') ||
     window.location.hash.includes('/gym/') ||
-    window.location.hash.includes('/trainer/')
+    window.location.hash.includes('/trainer/') ||
+    window.location.hash.includes('/sessions')
   );
 
   return (
@@ -121,8 +124,34 @@ function AppContent() {
               </ProtectedRoute>
             }
           />
+
+          {/* Auth routes */}
           <Route
             path="/signup"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <SignUp />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/signup/user"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <SignUp />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/signup/trainer"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <SignUp />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/signup/gym"
             element={
               <ProtectedRoute requireAuth={false}>
                 <SignUp />
@@ -246,6 +275,16 @@ function AppContent() {
             }
           />
 
+          {/* Session Management Routes */}
+          <Route
+            path="/sessions"
+            element={
+              <ProtectedRoute>
+                <SessionManagement />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Admin Routes */}
           <Route
             path="/admin"
@@ -254,11 +293,15 @@ function AppContent() {
                 {user?.role === 'admin' ? (
                   <AdminDashboard />
                 ) : (
-                  <Navigate to={
-                    user?.account_type === 'gym_owner' ? '/gym-dashboard' :
-                    user?.account_type === 'personal_trainer' ? '/trainer-dashboard' :
-                    '/dashboard'
-                  } />
+                  <Navigate
+                    to={
+                      user?.account_type === 'gym_owner'
+                        ? '/gym-dashboard'
+                        : user?.account_type === 'personal_trainer'
+                        ? '/trainer-dashboard'
+                        : '/dashboard'
+                    }
+                  />
                 )}
               </ProtectedRoute>
             }
@@ -272,9 +315,11 @@ function AppContent() {
                 {user?.account_type === 'gym_owner' ? (
                   <GymDashboard />
                 ) : (
-                  <Navigate to={
-                    user?.account_type === 'personal_trainer' ? '/trainer-dashboard' : '/dashboard'
-                  } />
+                  <Navigate
+                    to={
+                      user?.account_type === 'personal_trainer' ? '/trainer-dashboard' : '/dashboard'
+                    }
+                  />
                 )}
               </ProtectedRoute>
             }
@@ -288,9 +333,9 @@ function AppContent() {
                 {user?.account_type === 'personal_trainer' ? (
                   <TrainerDashboard />
                 ) : (
-                  <Navigate to={
-                    user?.account_type === 'gym_owner' ? '/gym-dashboard' : '/dashboard'
-                  } />
+                  <Navigate
+                    to={user?.account_type === 'gym_owner' ? '/gym-dashboard' : '/dashboard'}
+                  />
                 )}
               </ProtectedRoute>
             }
@@ -316,9 +361,13 @@ function App() {
       <AuthProvider>
         <DataProvider>
           <StripeProvider>
-            <Router>
-              <AppContent />
-            </Router>
+            <PaymentProvider>
+              <SessionProvider>
+                <Router>
+                  <AppContent />
+                </Router>
+              </SessionProvider>
+            </PaymentProvider>
           </StripeProvider>
         </DataProvider>
       </AuthProvider>

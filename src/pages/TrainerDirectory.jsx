@@ -5,13 +5,10 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
 import SafeIcon from '../common/SafeIcon';
+import SessionBookingModal from '../components/SessionBookingModal';
 import * as FiIcons from 'react-icons/fi';
 
-const {
-  FiAward, FiSearch, FiMapPin, FiDollarSign, FiStar, FiUsers, FiClock,
-  FiPhone, FiMail, FiGlobe, FiInstagram, FiMessageCircle, FiFilter,
-  FiRefreshCw, FiUser, FiTarget, FiTrendingUp, FiHeart, FiBookOpen
-} = FiIcons;
+const { FiAward, FiSearch, FiMapPin, FiDollarSign, FiStar, FiUsers, FiClock, FiPhone, FiMail, FiGlobe, FiInstagram, FiMessageCircle, FiFilter, FiRefreshCw, FiUser, FiTarget, FiTrendingUp, FiHeart, FiBookOpen, FiCalendar } = FiIcons;
 
 const TrainerDirectory = () => {
   const [trainers, setTrainers] = useState([]);
@@ -23,6 +20,8 @@ const TrainerDirectory = () => {
   const [priceRangeFilter, setPriceRangeFilter] = useState('');
   const [acceptingClientsOnly, setAcceptingClientsOnly] = useState(false);
   const [sortBy, setSortBy] = useState('rating');
+  const [selectedTrainer, setSelectedTrainer] = useState(null);
+  const [showBookingModal, setShowBookingModal] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -171,12 +170,25 @@ const TrainerDirectory = () => {
 
   const locations = ['All Locations', 'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix'];
   const specializations = [
-    'All Specializations', 'Weight Loss', 'Strength Training', 'Muscle Building',
-    'Athletic Performance', 'Yoga', 'Functional Training', 'Nutrition Coaching',
-    'Powerlifting', 'Rehabilitation', 'Beginner Fitness', 'Stress Relief'
+    'All Specializations',
+    'Weight Loss',
+    'Strength Training',
+    'Muscle Building',
+    'Athletic Performance',
+    'Yoga',
+    'Functional Training',
+    'Nutrition Coaching',
+    'Powerlifting',
+    'Rehabilitation',
+    'Beginner Fitness',
+    'Stress Relief'
   ];
   const priceRanges = [
-    'All Prices', '$50-70/hour', '$70-90/hour', '$90-110/hour', '$110+/hour'
+    'All Prices',
+    '$50-70/hour',
+    '$70-90/hour',
+    '$90-110/hour',
+    '$110+/hour'
   ];
 
   useEffect(() => {
@@ -192,7 +204,6 @@ const TrainerDirectory = () => {
     try {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 800));
-      
       // In a real app, this would fetch from Supabase
       // For now, we'll use demo data
       setTrainers(DEMO_TRAINERS);
@@ -282,7 +293,6 @@ const TrainerDirectory = () => {
       navigate('/signin');
       return;
     }
-    
     // In a real app, this would open a chat or contact form
     toast.success(`Contact feature coming soon! You can reach ${trainer.name} at ${trainer.email}`);
   };
@@ -293,14 +303,14 @@ const TrainerDirectory = () => {
       navigate('/signin');
       return;
     }
-    
+
     if (!trainer.is_accepting_clients) {
       toast.error(`${trainer.name} is not currently accepting new clients`);
       return;
     }
-    
-    // In a real app, this would open booking interface
-    toast.success(`Booking feature coming soon! Contact ${trainer.name} directly to schedule.`);
+
+    setSelectedTrainer(trainer);
+    setShowBookingModal(true);
   };
 
   const TrainerCard = ({ trainer }) => (
@@ -313,8 +323,8 @@ const TrainerDirectory = () => {
       {/* Header */}
       <div className="relative h-48 bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
         {trainer.profile_image ? (
-          <img 
-            src={trainer.profile_image} 
+          <img
+            src={trainer.profile_image}
             alt={trainer.name}
             className="w-24 h-24 rounded-full border-4 border-white object-cover"
           />
@@ -323,7 +333,7 @@ const TrainerDirectory = () => {
             {trainer.name.charAt(0)}
           </div>
         )}
-        
+
         {/* Badges */}
         <div className="absolute top-4 left-4 flex space-x-2">
           {trainer.verified && (
@@ -380,7 +390,10 @@ const TrainerDirectory = () => {
           <h4 className="text-sm font-medium text-gray-900 mb-2">Specializations</h4>
           <div className="flex flex-wrap gap-2">
             {trainer.specializations.slice(0, 3).map((spec, index) => (
-              <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+              <span
+                key={index}
+                className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+              >
                 {spec}
               </span>
             ))}
@@ -397,7 +410,10 @@ const TrainerDirectory = () => {
           <h4 className="text-sm font-medium text-gray-900 mb-2">Certifications</h4>
           <div className="flex flex-wrap gap-2">
             {trainer.certifications.slice(0, 2).map((cert, index) => (
-              <span key={index} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+              <span
+                key={index}
+                className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full"
+              >
                 {cert}
               </span>
             ))}
@@ -432,16 +448,23 @@ const TrainerDirectory = () => {
         {/* Contact Info */}
         <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
           {trainer.website && (
-            <a href={trainer.website} target="_blank" rel="noopener noreferrer" 
-               className="text-blue-600 hover:text-blue-800 flex items-center space-x-1">
+            <a
+              href={trainer.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+            >
               <SafeIcon icon={FiGlobe} className="text-xs" />
               <span>Website</span>
             </a>
           )}
           {trainer.instagram && (
-            <a href={`https://instagram.com/${trainer.instagram.replace('@', '')}`} 
-               target="_blank" rel="noopener noreferrer"
-               className="text-pink-600 hover:text-pink-800 flex items-center space-x-1">
+            <a
+              href={`https://instagram.com/${trainer.instagram.replace('@', '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-pink-600 hover:text-pink-800 flex items-center space-x-1"
+            >
               <SafeIcon icon={FiInstagram} className="text-xs" />
               <span>Instagram</span>
             </a>
@@ -477,6 +500,7 @@ const TrainerDirectory = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <Navbar />
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
@@ -664,13 +688,26 @@ const TrainerDirectory = () => {
               }}
               className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
             >
-              {searchTerm || locationFilter || specializationFilter || priceRangeFilter
-                ? 'Clear Filters'
-                : 'Refresh'}
+              {searchTerm || locationFilter || specializationFilter || priceRangeFilter ? 'Clear Filters' : 'Refresh'}
             </button>
           </motion.div>
         )}
       </div>
+
+      {/* Booking Modal */}
+      <SessionBookingModal
+        isOpen={showBookingModal}
+        onClose={() => {
+          setShowBookingModal(false);
+          setSelectedTrainer(null);
+        }}
+        trainer={selectedTrainer}
+        onBookingComplete={(booking) => {
+          console.log('Session booked:', booking);
+          setShowBookingModal(false);
+          setSelectedTrainer(null);
+        }}
+      />
     </div>
   );
 };

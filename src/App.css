@@ -1,0 +1,136 @@
+.app-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.chat-bubble {
+  max-width: 70%;
+  word-wrap: break-word;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: rgba(156, 163, 175, 0.5);
+  border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(156, 163, 175, 0.8);
+}
+
+/* Questera SDK Custom Styles */
+.quest-feedback-workflow {
+  font-family: inherit !important;
+}
+
+.quest-feedback-workflow .quest-feedback-form {
+  border-radius: 12px !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+}
+
+.quest-feedback-workflow .quest-button-primary {
+  background-color: #3b82f6 !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: all 0.2s ease !important;
+}
+
+.quest-feedback-workflow .quest-button-primary:hover {
+  background-color: #2563eb !important;
+  transform: translateY(-1px) !important;
+}
+
+.quest-feedback-workflow .quest-input {
+  border-radius: 8px !important;
+  border: 1px solid #d1d5db !important;
+  transition: all 0.2s ease !important;
+}
+
+.quest-feedback-workflow .quest-input:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.quest-feedback-workflow .quest-textarea {
+  border-radius: 8px !important;
+  border: 1px solid #d1d5db !important;
+  transition: all 0.2s ease !important;
+  resize: vertical !important;
+}
+
+.quest-feedback-workflow .quest-textarea:focus {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Mobile responsiveness for feedback */
+@media (max-width: 768px) {
+  .quest-feedback-workflow {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 90vw !important;
+    max-width: 350px !important;
+    max-height: 80vh !important;
+    overflow-y: auto !important;
+  }
+}
+
+/* Feedback button animations */
+@keyframes pulse-feedback {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.feedback-button-pulse {
+  animation: pulse-feedback 2s infinite;
+}
+
+/* Custom scrollbar for feedback workflow */
+.quest-feedback-workflow::-webkit-scrollbar {
+  width: 6px;
+}
+
+.quest-feedback-workflow::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.quest-feedback-workflow::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.quest-feedback-workflow::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

@@ -5,10 +5,13 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
 import SafeIcon from '../common/SafeIcon';
-import SessionBookingModal from '../components/SessionBookingModal';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiAward, FiSearch, FiMapPin, FiDollarSign, FiStar, FiUsers, FiClock, FiPhone, FiMail, FiGlobe, FiInstagram, FiMessageCircle, FiFilter, FiRefreshCw, FiUser, FiTarget, FiTrendingUp, FiHeart, FiBookOpen, FiCalendar } = FiIcons;
+const { 
+  FiAward, FiSearch, FiMapPin, FiDollarSign, FiStar, FiUsers, FiClock, 
+  FiPhone, FiMail, FiGlobe, FiInstagram, FiMessageCircle, FiFilter, 
+  FiRefreshCw, FiUser, FiTarget, FiTrendingUp, FiHeart, FiBookOpen, FiCalendar 
+} = FiIcons;
 
 const TrainerDirectory = () => {
   const [trainers, setTrainers] = useState([]);
@@ -20,13 +23,11 @@ const TrainerDirectory = () => {
   const [priceRangeFilter, setPriceRangeFilter] = useState('');
   const [acceptingClientsOnly, setAcceptingClientsOnly] = useState(false);
   const [sortBy, setSortBy] = useState('rating');
-  const [selectedTrainer, setSelectedTrainer] = useState(null);
-  const [showBookingModal, setShowBookingModal] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  // Demo trainer data
+  // Demo trainer data (keeping existing data)
   const DEMO_TRAINERS = [
     {
       id: 'trainer-1',
@@ -170,25 +171,12 @@ const TrainerDirectory = () => {
 
   const locations = ['All Locations', 'New York', 'Los Angeles', 'Chicago', 'Houston', 'Phoenix'];
   const specializations = [
-    'All Specializations',
-    'Weight Loss',
-    'Strength Training',
-    'Muscle Building',
-    'Athletic Performance',
-    'Yoga',
-    'Functional Training',
-    'Nutrition Coaching',
-    'Powerlifting',
-    'Rehabilitation',
-    'Beginner Fitness',
-    'Stress Relief'
+    'All Specializations', 'Weight Loss', 'Strength Training', 'Muscle Building', 
+    'Athletic Performance', 'Yoga', 'Functional Training', 'Nutrition Coaching', 
+    'Powerlifting', 'Rehabilitation', 'Beginner Fitness', 'Stress Relief'
   ];
   const priceRanges = [
-    'All Prices',
-    '$50-70/hour',
-    '$70-90/hour',
-    '$90-110/hour',
-    '$110+/hour'
+    'All Prices', '$50-70/hour', '$70-90/hour', '$90-110/hour', '$110+/hour'
   ];
 
   useEffect(() => {
@@ -204,8 +192,6 @@ const TrainerDirectory = () => {
     try {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 800));
-      // In a real app, this would fetch from Supabase
-      // For now, we'll use demo data
       setTrainers(DEMO_TRAINERS);
     } catch (error) {
       console.error('Error fetching trainers:', error);
@@ -225,7 +211,9 @@ const TrainerDirectory = () => {
         trainer.name.toLowerCase().includes(searchLower) ||
         trainer.business_name.toLowerCase().includes(searchLower) ||
         trainer.bio.toLowerCase().includes(searchLower) ||
-        trainer.specializations.some(spec => spec.toLowerCase().includes(searchLower))
+        trainer.specializations.some(spec => 
+          spec.toLowerCase().includes(searchLower)
+        )
       );
     }
 
@@ -293,7 +281,6 @@ const TrainerDirectory = () => {
       navigate('/signin');
       return;
     }
-    // In a real app, this would open a chat or contact form
     toast.success(`Contact feature coming soon! You can reach ${trainer.name} at ${trainer.email}`);
   };
 
@@ -309,8 +296,12 @@ const TrainerDirectory = () => {
       return;
     }
 
-    setSelectedTrainer(trainer);
-    setShowBookingModal(true);
+    // Navigate to trainer's availability page
+    navigate(`/trainer/${trainer.id}/book`);
+  };
+
+  const handleViewAvailability = (trainer) => {
+    navigate(`/trainer/${trainer.id}/availability`);
   };
 
   const TrainerCard = ({ trainer }) => (
@@ -472,25 +463,36 @@ const TrainerDirectory = () => {
         </div>
 
         {/* Actions */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2">
           <button
             onClick={() => handleContactTrainer(trainer)}
-            className="bg-gray-200 text-gray-700 py-2 px-4 rounded-lg font-medium hover:bg-gray-300 transition-colors flex items-center justify-center space-x-2"
+            className="bg-gray-200 text-gray-700 py-2 px-3 rounded-lg font-medium hover:bg-gray-300 transition-colors flex items-center justify-center space-x-1"
           >
             <SafeIcon icon={FiMessageCircle} className="text-sm" />
-            <span>Contact</span>
+            <span className="text-xs">Contact</span>
           </button>
+          
+          <button
+            onClick={() => handleViewAvailability(trainer)}
+            className="bg-blue-200 text-blue-700 py-2 px-3 rounded-lg font-medium hover:bg-blue-300 transition-colors flex items-center justify-center space-x-1"
+          >
+            <SafeIcon icon={FiCalendar} className="text-sm" />
+            <span className="text-xs">Schedule</span>
+          </button>
+
           <button
             onClick={() => handleBookSession(trainer)}
             disabled={!trainer.is_accepting_clients}
-            className={`py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 ${
+            className={`py-2 px-3 rounded-lg font-medium transition-colors flex items-center justify-center space-x-1 ${
               trainer.is_accepting_clients
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                ? 'bg-green-600 text-white hover:bg-green-700'
                 : 'bg-gray-400 text-gray-200 cursor-not-allowed'
             }`}
           >
             <SafeIcon icon={FiCalendar} className="text-sm" />
-            <span>{trainer.is_accepting_clients ? 'Book Session' : 'Not Available'}</span>
+            <span className="text-xs">
+              {trainer.is_accepting_clients ? 'Book' : 'Full'}
+            </span>
           </button>
         </div>
       </div>
@@ -500,7 +502,6 @@ const TrainerDirectory = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <Navbar />
-      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <motion.div
@@ -688,26 +689,13 @@ const TrainerDirectory = () => {
               }}
               className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
             >
-              {searchTerm || locationFilter || specializationFilter || priceRangeFilter ? 'Clear Filters' : 'Refresh'}
+              {searchTerm || locationFilter || specializationFilter || priceRangeFilter
+                ? 'Clear Filters'
+                : 'Refresh'}
             </button>
           </motion.div>
         )}
       </div>
-
-      {/* Booking Modal */}
-      <SessionBookingModal
-        isOpen={showBookingModal}
-        onClose={() => {
-          setShowBookingModal(false);
-          setSelectedTrainer(null);
-        }}
-        trainer={selectedTrainer}
-        onBookingComplete={(booking) => {
-          console.log('Session booked:', booking);
-          setShowBookingModal(false);
-          setSelectedTrainer(null);
-        }}
-      />
     </div>
   );
 };

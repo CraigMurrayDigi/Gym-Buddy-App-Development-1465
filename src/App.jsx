@@ -29,6 +29,7 @@ import GymDashboard from './pages/GymDashboard';
 import TrainerDashboard from './pages/TrainerDashboard';
 import GymDirectory from './pages/GymDirectory';
 import GymDetails from './pages/GymDetails';
+import TrainerDirectory from './pages/TrainerDirectory';
 
 // Components
 import LoadingSpinner from './components/LoadingSpinner';
@@ -77,6 +78,7 @@ function AppContent() {
     const timer = setTimeout(() => {
       setIsInitialized(true);
     }, 500);
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -102,151 +104,197 @@ function AppContent() {
     window.location.hash.includes('/search-members') ||
     window.location.hash.includes('/admin') ||
     window.location.hash.includes('/gym-directory') ||
-    window.location.hash.includes('/gym/')
+    window.location.hash.includes('/trainer-directory') ||
+    window.location.hash.includes('/gym/') ||
+    window.location.hash.includes('/trainer/')
   );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <AnimatePresence mode="wait">
         <Routes>
-          <Route path="/" element={
-            <ProtectedRoute requireAuth={false}>
-              <LandingPage />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/signup" element={
-            <ProtectedRoute requireAuth={false}>
-              <SignUp />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/signin" element={
-            <ProtectedRoute requireAuth={false}>
-              <SignIn />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/profile-setup" element={
-            <ProtectedRoute requireCompleteProfile={false}>
-              <ProfileSetup />
-            </ProtectedRoute>
-          } />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <LandingPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <SignUp />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/signin"
+            element={
+              <ProtectedRoute requireAuth={false}>
+                <SignIn />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile-setup"
+            element={
+              <ProtectedRoute requireCompleteProfile={false}>
+                <ProfileSetup />
+              </ProtectedRoute>
+            }
+          />
 
           {/* User Routes */}
-          <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/schedule" element={
-            <ProtectedRoute>
-              <WorkoutSchedule />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/find-buddies" element={
-            <ProtectedRoute>
-              <FindBuddies />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/search-members" element={
-            <ProtectedRoute>
-              <SearchMembers />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/member/:memberId" element={
-            <ProtectedRoute>
-              <MemberProfile />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/profile/:userId" element={
-            <ProtectedRoute>
-              <UserProfile />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/chat/:buddyId?" element={
-            <ProtectedRoute>
-              <Chat />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/profile" element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/upload-media" element={
-            <ProtectedRoute>
-              <MediaUpload />
-            </ProtectedRoute>
-          } />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/schedule"
+            element={
+              <ProtectedRoute>
+                <WorkoutSchedule />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/find-buddies"
+            element={
+              <ProtectedRoute>
+                <FindBuddies />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/search-members"
+            element={
+              <ProtectedRoute>
+                <SearchMembers />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/member/:memberId"
+            element={
+              <ProtectedRoute>
+                <MemberProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/:userId"
+            element={
+              <ProtectedRoute>
+                <UserProfile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/chat/:buddyId?"
+            element={
+              <ProtectedRoute>
+                <Chat />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/upload-media"
+            element={
+              <ProtectedRoute>
+                <MediaUpload />
+              </ProtectedRoute>
+            }
+          />
 
-          {/* Gym Directory Routes */}
-          <Route path="/gym-directory" element={
-            <ProtectedRoute>
-              <GymDirectory />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="/gym/:gymId" element={
-            <ProtectedRoute>
-              <GymDetails />
-            </ProtectedRoute>
-          } />
+          {/* Directory Routes */}
+          <Route
+            path="/gym-directory"
+            element={
+              <ProtectedRoute>
+                <GymDirectory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/gym/:gymId"
+            element={
+              <ProtectedRoute>
+                <GymDetails />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/trainer-directory"
+            element={
+              <ProtectedRoute>
+                <TrainerDirectory />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Admin Routes */}
-          <Route path="/admin" element={
-            <ProtectedRoute>
-              {user?.role === 'admin' ? (
-                <AdminDashboard />
-              ) : (
-                <Navigate to={
-                  user?.account_type === 'gym_owner' 
-                    ? '/gym-dashboard' 
-                    : user?.account_type === 'personal_trainer'
-                    ? '/trainer-dashboard'
-                    : '/dashboard'
-                } />
-              )}
-            </ProtectedRoute>
-          } />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                {user?.role === 'admin' ? (
+                  <AdminDashboard />
+                ) : (
+                  <Navigate to={
+                    user?.account_type === 'gym_owner' ? '/gym-dashboard' :
+                    user?.account_type === 'personal_trainer' ? '/trainer-dashboard' :
+                    '/dashboard'
+                  } />
+                )}
+              </ProtectedRoute>
+            }
+          />
 
           {/* Gym Owner Routes */}
-          <Route path="/gym-dashboard" element={
-            <ProtectedRoute>
-              {user?.account_type === 'gym_owner' ? (
-                <GymDashboard />
-              ) : (
-                <Navigate to={
-                  user?.account_type === 'personal_trainer'
-                    ? '/trainer-dashboard'
-                    : '/dashboard'
-                } />
-              )}
-            </ProtectedRoute>
-          } />
+          <Route
+            path="/gym-dashboard"
+            element={
+              <ProtectedRoute>
+                {user?.account_type === 'gym_owner' ? (
+                  <GymDashboard />
+                ) : (
+                  <Navigate to={
+                    user?.account_type === 'personal_trainer' ? '/trainer-dashboard' : '/dashboard'
+                  } />
+                )}
+              </ProtectedRoute>
+            }
+          />
 
           {/* Personal Trainer Routes */}
-          <Route path="/trainer-dashboard" element={
-            <ProtectedRoute>
-              {user?.account_type === 'personal_trainer' ? (
-                <TrainerDashboard />
-              ) : (
-                <Navigate to={
-                  user?.account_type === 'gym_owner'
-                    ? '/gym-dashboard'
-                    : '/dashboard'
-                } />
-              )}
-            </ProtectedRoute>
-          } />
+          <Route
+            path="/trainer-dashboard"
+            element={
+              <ProtectedRoute>
+                {user?.account_type === 'personal_trainer' ? (
+                  <TrainerDashboard />
+                ) : (
+                  <Navigate to={
+                    user?.account_type === 'gym_owner' ? '/gym-dashboard' : '/dashboard'
+                  } />
+                )}
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </AnimatePresence>
 

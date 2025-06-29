@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
-import trainerAvailabilityService from '../services/trainerAvailabilityService';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
 const { FiCalendar, FiClock, FiEdit2, FiSave, FiX, FiPlus, FiTrash2, FiCheck, FiUser, FiDollarSign } = FiIcons;
 
-const TrainerAvailability = ({ trainerId, isEditable = false, showBookingInterface = false, hourlyRate = 75 }) => {
+const TrainerAvailability = ({ trainerId, isEditable = false, showBookingInterface = false }) => {
   const [availability, setAvailability] = useState({});
   const [editMode, setEditMode] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -25,24 +24,61 @@ const TrainerAvailability = ({ trainerId, isEditable = false, showBookingInterfa
     { id: 'sunday', label: 'Sunday', short: 'Sun' }
   ];
 
+  // Demo availability data
+  const DEMO_AVAILABILITY = {
+    monday: [
+      { id: '1', startTime: '06:00', endTime: '08:00', available: true, booked: false },
+      { id: '2', startTime: '09:00', endTime: '10:00', available: true, booked: true },
+      { id: '3', startTime: '10:00', endTime: '11:00', available: true, booked: false },
+      { id: '4', startTime: '17:00', endTime: '18:00', available: true, booked: false },
+      { id: '5', startTime: '18:00', endTime: '19:00', available: true, booked: false }
+    ],
+    tuesday: [
+      { id: '6', startTime: '07:00', endTime: '08:00', available: true, booked: false },
+      { id: '7', startTime: '08:00', endTime: '09:00', available: true, booked: true },
+      { id: '8', startTime: '17:00', endTime: '18:00', available: true, booked: false },
+      { id: '9', startTime: '19:00', endTime: '20:00', available: true, booked: false }
+    ],
+    wednesday: [
+      { id: '10', startTime: '06:00', endTime: '07:00', available: true, booked: false },
+      { id: '11', startTime: '09:00', endTime: '10:00', available: true, booked: false },
+      { id: '12', startTime: '10:00', endTime: '11:00', available: true, booked: true },
+      { id: '13', startTime: '18:00', endTime: '19:00', available: true, booked: false }
+    ],
+    thursday: [
+      { id: '14', startTime: '07:00', endTime: '08:00', available: true, booked: false },
+      { id: '15', startTime: '17:00', endTime: '18:00', available: true, booked: true },
+      { id: '16', startTime: '18:00', endTime: '19:00', available: true, booked: false },
+      { id: '17', startTime: '19:00', endTime: '20:00', available: true, booked: false }
+    ],
+    friday: [
+      { id: '18', startTime: '06:00', endTime: '08:00', available: true, booked: false },
+      { id: '19', startTime: '09:00', endTime: '10:00', available: true, booked: false },
+      { id: '20', startTime: '17:00', endTime: '18:00', available: true, booked: false }
+    ],
+    saturday: [
+      { id: '21', startTime: '08:00', endTime: '09:00', available: true, booked: false },
+      { id: '22', startTime: '09:00', endTime: '10:00', available: true, booked: true },
+      { id: '23', startTime: '10:00', endTime: '11:00', available: true, booked: false },
+      { id: '24', startTime: '11:00', endTime: '12:00', available: true, booked: false }
+    ],
+    sunday: [
+      { id: '25', startTime: '09:00', endTime: '10:00', available: true, booked: false },
+      { id: '26', startTime: '10:00', endTime: '11:00', available: true, booked: false }
+    ]
+  };
+
   useEffect(() => {
-    if (trainerId) {
-      fetchAvailability();
-    }
+    fetchAvailability();
   }, [trainerId]);
 
   const fetchAvailability = async () => {
     setLoading(true);
     try {
-      const { data, error } = await trainerAvailabilityService.getTrainerAvailability(trainerId);
-      
-      if (error) {
-        console.error('Error fetching availability:', error);
-        toast.error('Failed to load availability');
-        return;
-      }
-
-      setAvailability(data || {});
+      // In a real app, this would fetch from the database
+      // For demo, we'll use mock data
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setAvailability(DEMO_AVAILABILITY);
     } catch (error) {
       console.error('Error fetching availability:', error);
       toast.error('Failed to load availability');
@@ -53,7 +89,7 @@ const TrainerAvailability = ({ trainerId, isEditable = false, showBookingInterfa
 
   const addTimeSlot = (dayId) => {
     const newSlot = {
-      id: `temp-${Date.now()}`, // Temporary ID for new slots
+      id: Date.now().toString(),
       startTime: '09:00',
       endTime: '10:00',
       available: true,
@@ -91,18 +127,10 @@ const TrainerAvailability = ({ trainerId, isEditable = false, showBookingInterfa
   const saveAvailability = async () => {
     setLoading(true);
     try {
-      const { error } = await trainerAvailabilityService.saveTrainerAvailability(trainerId, availability);
-      
-      if (error) {
-        toast.error('Failed to save availability');
-        return;
-      }
-
+      // In a real app, this would save to the database
+      await new Promise(resolve => setTimeout(resolve, 1000));
       setEditMode(false);
       toast.success('Availability updated successfully!');
-      
-      // Refresh the data
-      await fetchAvailability();
     } catch (error) {
       console.error('Error saving availability:', error);
       toast.error('Failed to save availability');
@@ -122,37 +150,11 @@ const TrainerAvailability = ({ trainerId, isEditable = false, showBookingInterfa
       return;
     }
 
-    if (!slot.available) {
-      toast.error('This time slot is not available');
-      return;
-    }
-
     try {
-      // For demo purposes, we'll book for today's date
-      // In a real app, this would come from a date picker
-      const today = new Date().toISOString().split('T')[0];
-      
-      const { data, error } = await trainerAvailabilityService.bookSession(
-        trainerId,
-        user.id,
-        today,
-        slot.startTime,
-        slot.endTime,
-        hourlyRate
-      );
-
-      if (error) {
-        toast.error(error);
-        return;
-      }
-
-      toast.success('Session booked successfully!');
-      
-      // Update local state to show as booked
+      // In a real app, this would create a booking
       updateTimeSlot(dayId, slot.id, { booked: true });
-      
+      toast.success('Session booked successfully!');
     } catch (error) {
-      console.error('Error booking session:', error);
       toast.error('Failed to book session');
     }
   };

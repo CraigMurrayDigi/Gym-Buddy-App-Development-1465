@@ -15,7 +15,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Demo users data
+  // Demo users data (keep for demo accounts)
   const DEMO_USERS = {
     'test@example.com': {
       id: 'demo-user-12345',
@@ -99,50 +99,22 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // Check for existing session
-    const checkSession = async () => {
-      try {
-        // Check for demo user in localStorage first
-        const storedUser = localStorage.getItem('demo_user');
-        if (storedUser) {
-          console.log('Found demo user in localStorage');
-          const parsedUser = JSON.parse(storedUser);
-          setUser(parsedUser);
-          setLoading(false);
-          return;
-        }
-
-        // Check Supabase session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error('Error getting session:', error);
-          setUser(null);
-        } else if (session?.user) {
-          console.log('Found existing Supabase session:', session.user.email);
-          await fetchUserProfile(session.user.id, session.user.email);
-        } else {
-          console.log('No existing session found');
-          setUser(null);
-        }
-      } catch (error) {
-        console.error('Error checking session:', error);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     checkSession();
 
     // Listen for Supabase auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event, session?.user?.email);
+      console.log('🔐 Auth state changed:', event, session?.user?.email);
+      
       if (event === 'SIGNED_IN' && session?.user) {
-        console.log('User signed in via Supabase:', session.user.email);
-        await fetchUserProfile(session.user.id, session.user.email);
+        console.log('✅ User signed in via Supabase:', session.user.email);
+        
+        // Wait a moment for the database trigger to complete
+        setTimeout(async () => {
+          await fetchOrCreateUserProfile(session.user.id, session.user.email, session.user.user_metadata);
+        }, 1000);
       } else if (event === 'SIGNED_OUT') {
-        console.log('User signed out from Supabase');
-        // Don't clear demo user here
+        console.log('🚪 User signed out from Supabase');
+        // Clear user unless it's a demo account
         if (user && !DEMO_USERS[user.email]) {
           setUser(null);
         }
@@ -152,76 +124,193 @@ export const AuthProvider = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const fetchUserProfile = async (userId, userEmail) => {
+  const checkSession = async () => {
     try {
-      console.log('Fetching profile for user:', userId, userEmail);
-      const { data, error } = await supabase
+      setLoading(true);
+      
+      // Check for demo user in localStorage first
+      const storedUser = localStorage.getItem('demo_user');
+      if (storedUser) {
+        console.log('📱 Found demo user in localStorage');
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+        setLoading(false);
+        return;
+      }
+
+      // Check Supabase session
+      console.log('🔍 Checking Supabase session...');
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error) {
+        console.error('❌ Error getting session:', error);
+        setUser(null);
+      } else if (session?.user) {
+        console.log('✅ Found existing Supabase session for:', session.user.email);
+        await fetchOrCreateUserProfile(session.user.id, session.user.email, session.user.user_metadata);
+      } else {
+        console.log('ℹ️ No existing session found');
+        setUser(null);
+      }
+    } catch (error) {
+      console.error('❌ Error checking session:', error);
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOrCreateUserProfile = async (userId, userEmail, userMetadata = {}) => {
+    try {
+      console.log('👤 Fetching/creating profile for:', userId, userEmail, userMetadata);
+      
+      // Try to fetch existing profile first
+      console.log('🔍 Checking for existing profile...');
+      const { data: existingProfile, error: fetchError } = await supabase
         .from('profiles_gym2024')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error fetching profile:', error);
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('❌ Error fetching profile:', fetchError);
+        // Don't throw, continue to create profile
       }
 
-      if (data) {
-        console.log('Profile found:', data);
-        setUser(data);
-      } else {
-        console.log('No profile found, creating basic user object');
-        const basicUser = {
-          id: userId,
-          email: userEmail,
-          name: userEmail.split('@')[0] || 'User',
-          location: '',
-          gym: '',
-          profile_complete: false,
-          role: 'user',
-          account_type: 'user'
-        };
-        setUser(basicUser);
-
-        // Try to create profile in database
-        try {
-          console.log('Attempting to create profile in database');
-          const { data: newProfile, error: insertError } = await supabase
-            .from('profiles_gym2024')
-            .insert([basicUser])
-            .select()
-            .single();
-
-          if (!insertError && newProfile) {
-            console.log('Profile created successfully:', newProfile);
-            setUser(newProfile);
-          } else {
-            console.log('Could not create profile in database, using local profile:', insertError);
-          }
-        } catch (insertError) {
-          console.log('Could not create profile in database, using local profile:', insertError);
-        }
+      if (existingProfile) {
+        console.log('✅ Existing profile found:', existingProfile.name);
+        setUser(existingProfile);
+        return existingProfile;
       }
-    } catch (error) {
-      console.error('Error fetching user profile:', error);
-      const basicUser = {
+
+      // Profile doesn't exist, create new one
+      console.log('⚠️ No profile found, creating new profile for:', userEmail);
+      
+      const newProfileData = {
         id: userId,
         email: userEmail,
-        name: userEmail.split('@')[0] || 'User',
+        name: userMetadata.name || userEmail.split('@')[0] || 'User',
         location: '',
         gym: '',
         profile_complete: false,
         role: 'user',
-        account_type: 'user'
+        account_type: userMetadata.account_type || 'user',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
       };
-      setUser(basicUser);
+
+      console.log('💾 Creating profile with data:', newProfileData);
+
+      // Insert the new profile with detailed error handling
+      const { data: createdProfile, error: createError } = await supabase
+        .from('profiles_gym2024')
+        .insert([newProfileData])
+        .select()
+        .single();
+
+      if (createError) {
+        console.error('❌ Error creating profile:', createError);
+        console.error('Create error details:', {
+          message: createError.message,
+          details: createError.details,
+          hint: createError.hint,
+          code: createError.code
+        });
+        
+        // Try one more time with a simpler approach
+        console.log('🔄 Retrying profile creation with minimal data...');
+        const simpleProfile = {
+          id: userId,
+          email: userEmail,
+          name: userMetadata.name || userEmail.split('@')[0] || 'User'
+        };
+        
+        const { data: retryProfile, error: retryError } = await supabase
+          .from('profiles_gym2024')
+          .insert([simpleProfile])
+          .select()
+          .single();
+          
+        if (retryError) {
+          console.error('❌ Retry also failed:', retryError);
+          // Set user with local data as fallback
+          console.log('⚠️ Using local profile data as fallback');
+          setUser(newProfileData);
+          return newProfileData;
+        } else {
+          console.log('✅ Profile created on retry:', retryProfile.name);
+          setUser(retryProfile);
+          return retryProfile;
+        }
+      } else {
+        console.log('✅ Profile created successfully:', createdProfile.name);
+        setUser(createdProfile);
+        return createdProfile;
+      }
+
+    } catch (error) {
+      console.error('❌ Error in fetchOrCreateUserProfile:', error);
+      
+      // Create basic user object as absolute fallback
+      const fallbackUser = {
+        id: userId,
+        email: userEmail,
+        name: userMetadata.name || userEmail.split('@')[0] || 'User',
+        location: '',
+        gym: '',
+        profile_complete: false,
+        role: 'user',
+        account_type: userMetadata.account_type || 'user',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('⚠️ Using fallback user data');
+      setUser(fallbackUser);
+      return fallbackUser;
     }
   };
 
   const signUp = async (email, password, userData) => {
     try {
-      console.log('Signing up user:', email, 'Account type:', userData.account_type);
-      const { data, error } = await supabase.auth.signUp({
-        email,
+      console.log('📝 Starting signup process for:', email, 'Account type:', userData.account_type);
+      setLoading(true);
+
+      // Validate inputs
+      if (!email || !password || !userData.name) {
+        throw new Error('Missing required fields');
+      }
+
+      const cleanEmail = email.toLowerCase().trim();
+      
+      // Check if Supabase is available
+      if (!supabase) {
+        throw new Error('Database connection not available');
+      }
+
+      // Test database connectivity before signup
+      console.log('🧪 Testing database connectivity before signup...');
+      try {
+        const { error: testError } = await supabase
+          .from('profiles_gym2024')
+          .select('count', { count: 'exact', head: true });
+        
+        if (testError) {
+          console.error('❌ Database test failed:', testError);
+          // Continue anyway, might be permissions issue
+        } else {
+          console.log('✅ Database connectivity confirmed');
+        }
+      } catch (testErr) {
+        console.error('❌ Database test error:', testErr);
+        // Continue anyway
+      }
+
+      console.log('🔐 Creating Supabase auth user...');
+
+      // Create Supabase auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: cleanEmail,
         password,
         options: {
           data: {
@@ -231,129 +320,45 @@ export const AuthProvider = ({ children }) => {
         }
       });
 
-      if (error) {
-        console.error('Signup error:', error);
-        return { user: null, error: error.message };
+      if (authError) {
+        console.error('❌ Supabase auth signup error:', authError);
+        return { user: null, error: authError.message };
       }
 
-      if (data.user) {
-        console.log('User created:', data.user.email);
-        // Create profile immediately for the new user
-        const profileData = {
-          id: data.user.id,
-          email: data.user.email,
-          name: userData.name,
-          location: '',
-          gym: '',
-          profile_complete: false,
-          role: 'user',
-          account_type: userData.account_type || 'user'
-        };
-
-        try {
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles_gym2024')
-            .insert([profileData])
-            .select()
-            .single();
-
-          if (!profileError && profile) {
-            console.log('Profile created for new user:', profile);
-            setUser(profile);
-
-            // Handle different account types
-            if (userData.account_type === 'gym_owner' && userData.gym_data) {
-              try {
-                const gymAccountData = {
-                  user_id: data.user.id,
-                  business_name: userData.gym_data.businessName,
-                  business_email: userData.gym_data.businessEmail,
-                  phone: userData.gym_data.phone,
-                  address: userData.gym_data.address,
-                  city: userData.gym_data.city,
-                  state: userData.gym_data.state,
-                  zip_code: userData.gym_data.zipCode,
-                  website: userData.gym_data.website,
-                  description: userData.gym_data.description,
-                  verified: false
-                };
-
-                const { data: gymAccount, error: gymError } = await supabase
-                  .from('gym_accounts_gym2024')
-                  .insert([gymAccountData])
-                  .select()
-                  .single();
-
-                if (gymError) {
-                  console.error('Error creating gym account:', gymError);
-                } else {
-                  console.log('Gym account created:', gymAccount);
-                }
-              } catch (gymError) {
-                console.error('Error creating gym account:', gymError);
-              }
-            } else if (userData.account_type === 'personal_trainer' && userData.trainer_data) {
-              try {
-                const trainerData = {
-                  user_id: data.user.id,
-                  business_name: userData.trainer_data.businessName,
-                  specializations: userData.trainer_data.specializations,
-                  certifications: userData.trainer_data.certifications,
-                  experience_years: userData.trainer_data.experienceYears,
-                  hourly_rate: userData.trainer_data.hourlyRate,
-                  bio: userData.trainer_data.bio,
-                  phone: userData.trainer_data.phone,
-                  website: userData.trainer_data.website,
-                  instagram: userData.trainer_data.instagram,
-                  location: userData.trainer_data.location,
-                  gym_affiliations: userData.trainer_data.gymAffiliations,
-                  services_offered: userData.trainer_data.servicesOffered,
-                  is_accepting_clients: userData.trainer_data.isAcceptingClients,
-                  verified: false
-                };
-
-                const { data: trainerProfile, error: trainerError } = await supabase
-                  .from('personal_trainers_gym2024')
-                  .insert([trainerData])
-                  .select()
-                  .single();
-
-                if (trainerError) {
-                  console.error('Error creating trainer profile:', trainerError);
-                } else {
-                  console.log('Trainer profile created:', trainerProfile);
-                }
-              } catch (trainerError) {
-                console.error('Error creating trainer profile:', trainerError);
-              }
-            }
-          } else {
-            console.log('Profile creation failed, using basic user data:', profileError);
-            setUser(profileData);
-          }
-        } catch (profileError) {
-          console.log('Profile creation failed, using basic user data:', profileError);
-          setUser(profileData);
-        }
-
-        return { user: data.user, error: null };
+      if (!authData.user) {
+        console.error('❌ No user returned from signup');
+        return { user: null, error: 'Failed to create user account' };
       }
 
-      return { user: data.user, error: null };
+      console.log('✅ Supabase auth user created:', authData.user.email);
+      console.log('📧 User ID:', authData.user.id);
+      console.log('👤 User metadata:', authData.user.user_metadata);
+
+      // Important: Don't try to create profile manually here
+      // Let the database trigger handle it, or the auth state change listener
+      console.log('⏳ Waiting for database trigger or auth state change...');
+
+      // The auth state change listener will handle profile creation
+      return { user: authData.user, error: null };
+
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error('❌ Signup process failed:', error);
       return { user: null, error: error.message };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signIn = async (email, password) => {
     try {
-      console.log('Attempting sign in for:', email);
+      console.log('🔐 Attempting sign in for:', email);
+      setLoading(true);
 
-      // Handle demo accounts
-      if (DEMO_USERS[email]) {
-        const demoUser = DEMO_USERS[email];
-        // Check password for demo accounts
+      const cleanEmail = email.toLowerCase().trim();
+
+      // Handle demo accounts first
+      if (DEMO_USERS[cleanEmail]) {
+        const demoUser = DEMO_USERS[cleanEmail];
         const validPasswords = {
           'test@example.com': 'password123',
           'admin@gymbuddy.com': 'admin123',
@@ -362,8 +367,8 @@ export const AuthProvider = ({ children }) => {
           'trainer@example.com': 'trainer123'
         };
 
-        if (password === validPasswords[email]) {
-          console.log('Demo account login successful:', email);
+        if (password === validPasswords[cleanEmail]) {
+          console.log('✅ Demo account login successful:', cleanEmail);
           setUser(demoUser);
           localStorage.setItem('demo_user', JSON.stringify(demoUser));
           return { user: demoUser, error: null };
@@ -372,28 +377,42 @@ export const AuthProvider = ({ children }) => {
         }
       }
 
-      // Handle regular Supabase authentication
+      // Handle real Supabase authentication
+      console.log('🔍 Attempting Supabase authentication...');
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: cleanEmail,
         password
       });
 
       if (error) {
-        console.error('Sign in error:', error);
+        console.error('❌ Supabase sign in error:', error);
         return { user: null, error: error.message };
       }
 
-      console.log('Sign in successful:', data.user?.email);
-      return { user: data.user, error: null };
+      if (data.user) {
+        console.log('✅ Supabase sign in successful:', data.user.email);
+        console.log('📧 User ID:', data.user.id);
+        
+        // Profile will be fetched by the auth state change listener
+        // But let's also try to fetch it immediately
+        await fetchOrCreateUserProfile(data.user.id, data.user.email, data.user.user_metadata);
+        
+        return { user: data.user, error: null };
+      }
+
+      return { user: null, error: 'Unknown sign in error' };
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('❌ Sign in process failed:', error);
       return { user: null, error: error.message };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
-      console.log('Signing out user');
+      console.log('🚪 Signing out user');
+
       // Clear demo user
       if (user && DEMO_USERS[user.email]) {
         localStorage.removeItem('demo_user');
@@ -408,7 +427,7 @@ export const AuthProvider = ({ children }) => {
       }
       return { error };
     } catch (error) {
-      console.error('Sign out error:', error);
+      console.error('❌ Sign out error:', error);
       return { error: error.message };
     }
   };
@@ -417,41 +436,122 @@ export const AuthProvider = ({ children }) => {
     try {
       if (!user) return { user: null, error: 'No user logged in' };
 
-      console.log('Updating profile:', profileData);
-      
-      // Update local user state immediately
-      const updatedUser = { ...user, ...profileData };
-      setUser(updatedUser);
+      console.log('📝 Updating profile for:', user.email);
+      console.log('📝 Update data:', profileData);
 
-      // Update demo user in localStorage
+      // Handle demo users
       if (DEMO_USERS[user.email]) {
+        const updatedUser = { ...user, ...profileData };
+        setUser(updatedUser);
         localStorage.setItem('demo_user', JSON.stringify(updatedUser));
+        console.log('✅ Demo user profile updated locally');
         return { user: updatedUser, error: null };
       }
 
-      // Try to update in database for real users
-      try {
-        const { data, error } = await supabase
-          .from('profiles_gym2024')
-          .update(profileData)
-          .eq('id', user.id)
-          .select()
-          .single();
+      // For real users, update in database
+      const updateData = {
+        ...profileData,
+        updated_at: new Date().toISOString()
+      };
 
-        if (error) {
-          console.log('Database update failed, keeping local update:', error);
-        } else {
-          console.log('Profile updated in database:', data);
-          setUser(data);
-        }
-      } catch (dbError) {
-        console.log('Database unavailable, keeping local update');
+      const { data, error } = await supabase
+        .from('profiles_gym2024')
+        .update(updateData)
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('❌ Database update error:', error);
+        // Fall back to local update
+        const updatedUser = { ...user, ...profileData };
+        setUser(updatedUser);
+        return { user: updatedUser, error: null };
       }
 
-      return { user: updatedUser, error: null };
+      console.log('✅ Profile updated successfully in database');
+      setUser(data);
+      return { user: data, error: null };
     } catch (error) {
-      console.error('Update profile error:', error);
+      console.error('❌ Update profile error:', error);
       return { user: null, error: error.message };
+    }
+  };
+
+  const createGymAccount = async (userId, gymData) => {
+    try {
+      console.log('🏢 Creating gym account for user:', userId);
+      
+      const gymAccountData = {
+        user_id: userId,
+        business_name: gymData.businessName,
+        business_email: gymData.businessEmail,
+        phone: gymData.phone,
+        address: gymData.address,
+        city: gymData.city,
+        state: gymData.state,
+        zip_code: gymData.zipCode,
+        website: gymData.website,
+        description: gymData.description,
+        verified: false,
+        subscription_plan: 'basic',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data: gymAccount, error: gymError } = await supabase
+        .from('gym_accounts_gym2024')
+        .insert([gymAccountData])
+        .select()
+        .single();
+
+      if (gymError) {
+        console.error('❌ Error creating gym account:', gymError);
+      } else {
+        console.log('✅ Gym account created:', gymAccount.business_name);
+      }
+    } catch (error) {
+      console.error('❌ Error in createGymAccount:', error);
+    }
+  };
+
+  const createTrainerAccount = async (userId, trainerData) => {
+    try {
+      console.log('🏋️ Creating trainer account for user:', userId);
+      
+      const trainerAccountData = {
+        user_id: userId,
+        business_name: trainerData.businessName,
+        specializations: trainerData.specializations,
+        certifications: trainerData.certifications,
+        experience_years: trainerData.experienceYears,
+        hourly_rate: trainerData.hourlyRate,
+        bio: trainerData.bio,
+        phone: trainerData.phone,
+        website: trainerData.website,
+        instagram: trainerData.instagram,
+        location: trainerData.location,
+        gym_affiliations: trainerData.gymAffiliations,
+        services_offered: trainerData.servicesOffered,
+        is_accepting_clients: trainerData.isAcceptingClients ?? true,
+        verified: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data: trainerAccount, error: trainerError } = await supabase
+        .from('personal_trainers_gym2024')
+        .insert([trainerAccountData])
+        .select()
+        .single();
+
+      if (trainerError) {
+        console.error('❌ Error creating trainer account:', trainerError);
+      } else {
+        console.log('✅ Trainer account created:', trainerAccount.business_name);
+      }
+    } catch (error) {
+      console.error('❌ Error in createTrainerAccount:', error);
     }
   };
 
@@ -488,7 +588,7 @@ export const AuthProvider = ({ children }) => {
     signOut,
     updateProfile,
     uploadMedia,
-    fetchUserProfile
+    fetchUserProfile: fetchOrCreateUserProfile
   };
 
   return (

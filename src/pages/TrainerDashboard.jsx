@@ -3,15 +3,14 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import trainerAvailabilityService from '../services/trainerAvailabilityService';
 import Navbar from '../components/Navbar';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
 const {
-  FiAward, FiUsers, FiCalendar, FiDollarSign, FiMapPin, FiPhone, FiGlobe, FiMail,
-  FiClock, FiBarChart3, FiSettings, FiCheckCircle, FiAlertCircle, FiX, FiSave,
-  FiEdit3, FiPlus, FiStar, FiTrendingUp, FiActivity, FiTarget
+  FiAward, FiUsers, FiCalendar, FiDollarSign, FiMapPin, FiPhone, FiGlobe,
+  FiMail, FiClock, FiBarChart3, FiSettings, FiCheckCircle, FiAlertCircle,
+  FiX, FiSave, FiEdit3, FiPlus, FiStar, FiTrendingUp, FiActivity, FiTarget
 } = FiIcons;
 
 const TrainerDashboard = () => {
@@ -20,15 +19,6 @@ const TrainerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [bookings, setBookings] = useState([]);
-  const [stats, setStats] = useState({
-    totalClients: 12,
-    monthlyRevenue: 3200,
-    sessionsThisMonth: 48,
-    averageRating: 4.8,
-    totalSessions: 156,
-    reviewCount: 24
-  });
   const [settingsFormData, setSettingsFormData] = useState({
     businessName: '',
     bio: '',
@@ -43,8 +33,6 @@ const TrainerDashboard = () => {
   useEffect(() => {
     if (!user || user.account_type !== 'personal_trainer') {
       navigate('/dashboard');
-    } else {
-      fetchTrainerData();
     }
   }, [user, navigate]);
 
@@ -63,41 +51,6 @@ const TrainerDashboard = () => {
       });
     }
   }, [user]);
-
-  const fetchTrainerData = async () => {
-    if (!user?.trainer_data?.id) return;
-
-    try {
-      // Fetch bookings
-      const { data: bookingsData } = await trainerAvailabilityService.getTrainerBookings(
-        user.trainer_data.id,
-        new Date().toISOString().split('T')[0], // From today
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // Next 30 days
-      );
-
-      setBookings(bookingsData || []);
-
-      // Calculate stats from real data
-      if (bookingsData) {
-        const completedBookings = bookingsData.filter(b => b.status === 'completed');
-        const thisMonth = new Date().getMonth();
-        const thisYear = new Date().getFullYear();
-        const thisMonthBookings = bookingsData.filter(b => {
-          const bookingDate = new Date(b.booking_date);
-          return bookingDate.getMonth() === thisMonth && bookingDate.getFullYear() === thisYear;
-        });
-
-        setStats(prev => ({
-          ...prev,
-          totalSessions: completedBookings.length,
-          sessionsThisMonth: thisMonthBookings.length,
-          monthlyRevenue: thisMonthBookings.reduce((sum, b) => sum + (b.total_amount || 0), 0)
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching trainer data:', error);
-    }
-  };
 
   if (!user || user.account_type !== 'personal_trainer') {
     return null;
@@ -118,9 +71,41 @@ const TrainerDashboard = () => {
     isAcceptingClients: true
   };
 
-  const upcomingSessions = bookings.filter(b => 
-    new Date(b.booking_date) >= new Date() && b.status === 'confirmed'
-  ).slice(0, 3);
+  const stats = {
+    totalClients: 12,
+    monthlyRevenue: 3200,
+    sessionsThisMonth: 48,
+    averageRating: 4.8,
+    totalSessions: 156,
+    reviewCount: 24
+  };
+
+  const upcomingSessions = [
+    {
+      id: 1,
+      clientName: 'Sarah Johnson',
+      date: '2024-01-20',
+      time: '09:00',
+      type: 'Strength Training',
+      status: 'confirmed'
+    },
+    {
+      id: 2,
+      clientName: 'Mike Chen',
+      date: '2024-01-20',
+      time: '11:00',
+      type: 'Weight Loss Consultation',
+      status: 'pending'
+    },
+    {
+      id: 3,
+      clientName: 'Emily Davis',
+      date: '2024-01-20',
+      time: '14:00',
+      type: 'Personal Training',
+      status: 'confirmed'
+    }
+  ];
 
   const recentReviews = [
     {
@@ -151,7 +136,6 @@ const TrainerDashboard = () => {
     { id: 'sessions', label: 'Sessions', icon: FiCalendar },
     { id: 'clients', label: 'Clients', icon: FiUsers },
     { id: 'reviews', label: 'Reviews', icon: FiStar },
-    { id: 'availability', label: 'Availability', icon: FiClock },
     { id: 'profile', label: 'Profile', icon: FiSettings }
   ];
 
@@ -434,9 +418,7 @@ const TrainerDashboard = () => {
           <div className="flex items-center justify-center mb-4">
             <SafeIcon icon={FiAward} className="text-4xl text-blue-600 mr-3" />
             <div className="text-left">
-              <h1 className="text-3xl font-bold text-gray-900">
-                {trainerData.businessName || user.name}
-              </h1>
+              <h1 className="text-3xl font-bold text-gray-900">{trainerData.businessName || user.name}</h1>
               <div className="flex items-center space-x-2">
                 <span className="text-gray-600">Personal Trainer Dashboard</span>
                 {trainerData.verified ? (
@@ -545,10 +527,7 @@ const TrainerDashboard = () => {
                       </div>
                       <div className="flex flex-wrap gap-2">
                         {trainerData.specializations.map((spec, index) => (
-                          <span
-                            key={index}
-                            className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
-                          >
+                          <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                             {spec}
                           </span>
                         ))}
@@ -584,68 +563,32 @@ const TrainerDashboard = () => {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Today's Sessions</h3>
                   <div className="space-y-3">
-                    {upcomingSessions.length > 0 ? (
-                      upcomingSessions.map((session) => (
-                        <div
-                          key={session.id}
-                          className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between"
-                        >
-                          <div className="flex items-center space-x-4">
-                            <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                              {formatTime(session.start_time)}
-                            </div>
-                            <div>
-                              <p className="font-medium text-gray-900">
-                                {session.client?.name || 'Client'}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                {formatDate(session.booking_date)} • {formatPrice(session.total_amount || 0)}
-                              </p>
-                            </div>
+                    {upcomingSessions.map((session) => (
+                      <div key={session.id} className="bg-white border border-gray-200 rounded-lg p-4 flex items-center justify-between">
+                        <div className="flex items-center space-x-4">
+                          <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                            {formatTime(session.time)}
                           </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            session.status === 'confirmed' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {session.status}
-                          </span>
+                          <div>
+                            <p className="font-medium text-gray-900">{session.clientName}</p>
+                            <p className="text-sm text-gray-600">{session.type}</p>
+                          </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8 text-gray-500">
-                        <SafeIcon icon={FiCalendar} className="text-4xl mb-2 mx-auto" />
-                        <p>No sessions scheduled for today</p>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          session.status === 'confirmed' 
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {session.status}
+                        </span>
                       </div>
-                    )}
+                    ))}
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* Availability Tab */}
-            {activeTab === 'availability' && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="text-center py-8"
-              >
-                <SafeIcon icon={FiClock} className="text-6xl text-gray-300 mb-4 mx-auto" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Manage Your Availability</h3>
-                <p className="text-gray-600 mb-6">
-                  Set your weekly schedule so clients can book sessions with you.
-                </p>
-                <button 
-                  onClick={() => navigate(`/trainer/${user.trainer_data?.id || 'current'}/availability`)}
-                  className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  Manage Availability
-                </button>
-              </motion.div>
-            )}
-
-            {/* Other tabs remain the same but simplified for brevity */}
+            {/* Sessions Tab */}
             {activeTab === 'sessions' && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -664,7 +607,167 @@ const TrainerDashboard = () => {
               </motion.div>
             )}
 
-            {/* Add other tabs as needed */}
+            {/* Clients Tab */}
+            {activeTab === 'clients' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="text-center py-8"
+              >
+                <SafeIcon icon={FiUsers} className="text-6xl text-gray-300 mb-4 mx-auto" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Client Management</h3>
+                <p className="text-gray-600 mb-6">
+                  View your client list, track their progress, and manage training programs.
+                </p>
+                <button className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors">
+                  Manage Clients
+                </button>
+              </motion.div>
+            )}
+
+            {/* Reviews Tab */}
+            {activeTab === 'reviews' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-semibold text-gray-900">Client Reviews</h3>
+                  <div className="flex items-center space-x-2">
+                    <SafeIcon icon={FiStar} className="text-yellow-400" />
+                    <span className="text-xl font-bold">{stats.averageRating}</span>
+                    <span className="text-gray-600">({stats.reviewCount} reviews)</span>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {recentReviews.map((review) => (
+                    <div key={review.id} className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center space-x-3">
+                          <div className="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
+                            {review.clientName.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{review.clientName}</p>
+                            <div className="flex items-center space-x-1">
+                              {[...Array(review.rating)].map((_, i) => (
+                                <SafeIcon key={i} icon={FiStar} className="text-yellow-400 text-sm" />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-sm text-gray-500">{formatDate(review.date)}</span>
+                      </div>
+                      <p className="text-gray-700">{review.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Profile Tab */}
+            {activeTab === 'profile' && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="space-y-6"
+              >
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Professional Info */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Professional Information</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Experience</p>
+                        <p className="text-gray-900">{trainerData.experienceYears} years</p>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Specializations</p>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {trainerData.specializations.map((spec, index) => (
+                            <span key={index} className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                              {spec}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Certifications</p>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {trainerData.certifications.map((cert, index) => (
+                            <span key={index} className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                              {cert}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Services Offered</p>
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {trainerData.servicesOffered.map((service, index) => (
+                            <span key={index} className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+                              {service}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Contact & Settings */}
+                  <div className="bg-gray-50 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-gray-900">Contact & Settings</h3>
+                      <button
+                        onClick={openSettingsModal}
+                        className="text-blue-600 hover:text-blue-800 transition-colors"
+                      >
+                        <SafeIcon icon={FiEdit3} />
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="flex items-center space-x-3">
+                        <SafeIcon icon={FiMapPin} className="text-blue-600" />
+                        <div>
+                          <p className="font-medium text-gray-900">Location</p>
+                          <p className="text-gray-600">{trainerData.location}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <SafeIcon icon={FiDollarSign} className="text-blue-600" />
+                        <div>
+                          <p className="font-medium text-gray-900">Hourly Rate</p>
+                          <p className="text-gray-600">{formatPrice(trainerData.hourlyRate)}</p>
+                        </div>
+                      </div>
+                      {trainerData.phone && (
+                        <div className="flex items-center space-x-3">
+                          <SafeIcon icon={FiPhone} className="text-blue-600" />
+                          <div>
+                            <p className="font-medium text-gray-900">Phone</p>
+                            <p className="text-gray-600">{trainerData.phone}</p>
+                          </div>
+                        </div>
+                      )}
+                      <div className="flex items-center space-x-3">
+                        <SafeIcon icon={FiTarget} className="text-blue-600" />
+                        <div>
+                          <p className="font-medium text-gray-900">Accepting Clients</p>
+                          <p className={`text-sm ${trainerData.isAcceptingClients ? 'text-green-600' : 'text-red-600'}`}>
+                            {trainerData.isAcceptingClients ? 'Yes, accepting new clients' : 'Not accepting new clients'}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
           </div>
         </div>
 

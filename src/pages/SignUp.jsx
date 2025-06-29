@@ -39,64 +39,91 @@ const SignUp = () => {
     setCurrentStep(2);
   };
 
+  // Validate email format
+  const isValidEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validation
+
+    // Comprehensive validation
     if (!formData.name.trim()) {
       toast.error('Please enter your full name');
       return;
     }
-    
+
     if (!formData.email.trim()) {
       toast.error('Please enter your email address');
       return;
     }
-    
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+
+    if (!isValidEmail(formData.email)) {
       toast.error('Please enter a valid email address');
       return;
     }
-    
+
     if (formData.password.length < 6) {
       toast.error('Password must be at least 6 characters long');
       return;
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       toast.error('Passwords do not match');
       return;
     }
 
     setLoading(true);
-    
+
     try {
-      console.log('Signing up with:', formData.email, 'Account type:', accountType);
-      
-      const { user, error } = await signUp(formData.email, formData.password, {
-        name: formData.name,
+      console.log('🚀 Starting signup process...');
+      console.log('📧 Email:', formData.email);
+      console.log('👤 Name:', formData.name);
+      console.log('🏷️ Account type:', accountType);
+
+      const userData = {
+        name: formData.name.trim(),
         account_type: accountType
-      });
+      };
+
+      const { user, error, warning } = await signUp(
+        formData.email.trim(),
+        formData.password,
+        userData
+      );
 
       if (error) {
-        console.error('Signup error:', error);
+        console.error('❌ Signup failed:', error);
         toast.error(error);
-      } else if (user) {
-        console.log('Signup successful for:', user.email);
-        toast.success('Account created successfully! Please complete your profile setup.');
+        return;
+      }
+
+      if (user) {
+        console.log('✅ Signup successful!');
         
-        // Navigate based on account type
-        if (accountType === 'gym_owner') {
-          navigate('/gym-dashboard');
-        } else if (accountType === 'personal_trainer') {
-          navigate('/trainer-dashboard');
+        if (warning) {
+          toast.success('Account created successfully!');
+          toast.error(warning, { duration: 5000 });
         } else {
-          navigate('/profile-setup');
+          toast.success('Account created successfully! Please complete your profile setup.');
         }
+
+        // Wait a moment for the database operations to complete
+        setTimeout(() => {
+          // Navigate based on account type
+          if (accountType === 'gym_owner') {
+            navigate('/gym-dashboard');
+          } else if (accountType === 'personal_trainer') {
+            navigate('/trainer-dashboard');
+          } else {
+            navigate('/profile-setup');
+          }
+        }, 2000);
       }
     } catch (error) {
-      console.error('Signup error:', error);
+      console.error('❌ Signup process error:', error);
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -216,19 +243,16 @@ const SignUp = () => {
       >
         <div className="bg-white rounded-xl shadow-lg p-8">
           <div className="text-center mb-8">
-            <SafeIcon 
-              icon={accountType === 'gym_owner' ? FiBuilding : accountType === 'personal_trainer' ? FiAward : FiUser} 
-              className="text-4xl text-blue-600 mb-4 mx-auto" 
+            <SafeIcon
+              icon={accountType === 'gym_owner' ? FiBuilding : accountType === 'personal_trainer' ? FiAward : FiUser}
+              className="text-4xl text-blue-600 mb-4 mx-auto"
             />
             <h2 className="text-3xl font-bold text-gray-900 mb-2">
               Create {accountType === 'gym_owner' ? 'Gym Business' : accountType === 'personal_trainer' ? 'Trainer' : 'Personal'} Account
             </h2>
             <p className="text-gray-600">
-              {accountType === 'gym_owner' ? 'Set up your gym business profile' : 
-               accountType === 'personal_trainer' ? 'Join as a personal trainer' : 
-               'Join the fitness community'}
+              {accountType === 'gym_owner' ? 'Set up your gym business profile' : accountType === 'personal_trainer' ? 'Join as a personal trainer' : 'Join the fitness community'}
             </p>
-            
             <button
               onClick={() => setCurrentStep(1)}
               className="text-blue-600 hover:text-blue-800 font-medium text-sm mt-2"
@@ -240,7 +264,7 @@ const SignUp = () => {
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                Full Name
+                Full Name *
               </label>
               <div className="relative">
                 <SafeIcon icon={FiUser} className="absolute left-3 top-3 text-gray-400" />
@@ -259,7 +283,7 @@ const SignUp = () => {
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
+                Email Address *
               </label>
               <div className="relative">
                 <SafeIcon icon={FiMail} className="absolute left-3 top-3 text-gray-400" />
@@ -278,7 +302,7 @@ const SignUp = () => {
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
+                Password *
               </label>
               <div className="relative">
                 <SafeIcon icon={FiLock} className="absolute left-3 top-3 text-gray-400" />
@@ -304,7 +328,7 @@ const SignUp = () => {
 
             <div>
               <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password
+                Confirm Password *
               </label>
               <div className="relative">
                 <SafeIcon icon={FiLock} className="absolute left-3 top-3 text-gray-400" />

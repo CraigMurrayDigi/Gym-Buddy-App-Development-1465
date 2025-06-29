@@ -32,20 +32,27 @@ const ProfileSetup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     try {
-      const { error } = await updateProfile({
+      console.log('ProfileSetup: Submitting form data:', formData);
+      
+      const profileUpdateData = {
         ...formData,
         profile_complete: true
-      });
+      };
 
+      const { user: updatedUser, error } = await updateProfile(profileUpdateData);
+      
       if (error) {
+        console.error('ProfileSetup: Update error:', error);
         toast.error(error);
       } else {
+        console.log('ProfileSetup: Profile updated successfully:', updatedUser);
         toast.success('Profile setup completed!');
         navigate('/dashboard');
       }
     } catch (error) {
+      console.error('ProfileSetup: Failed to update profile:', error);
       toast.error('Failed to update profile');
     } finally {
       setLoading(false);

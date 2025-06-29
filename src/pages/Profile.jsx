@@ -17,6 +17,7 @@ const Profile = () => {
     gym: ''
   });
   const [loading, setLoading] = useState(false);
+  
   const { user, updateProfile } = useAuth();
   const { locations, gyms, workouts } = useData();
 
@@ -43,15 +44,22 @@ const Profile = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+
     try {
-      const { error } = await updateProfile(formData);
+      console.log('Profile form submitting with data:', formData);
+      
+      const { user: updatedUser, error } = await updateProfile(formData);
+      
       if (error) {
+        console.error('Profile update error:', error);
         toast.error(error);
       } else {
+        console.log('Profile updated successfully:', updatedUser);
         toast.success('Profile updated successfully!');
         setIsEditing(false);
       }
     } catch (error) {
+      console.error('Profile update failed:', error);
       toast.error('Failed to update profile');
     } finally {
       setLoading(false);

@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import trainerAvailabilityService from '../services/trainerAvailabilityService';
 import Navbar from '../components/Navbar';
 import AvailabilityCalendar from '../components/AvailabilityCalendar';
 import TrainerAvailability from '../components/TrainerAvailability';
@@ -15,65 +14,24 @@ const TrainerAvailabilityPage = () => {
   const { trainerId } = useParams();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [viewMode, setViewMode] = useState('calendar');
-  const [trainer, setTrainer] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('calendar'); // 'calendar' or 'schedule'
 
-  const isOwnProfile = user?.id === trainer?.user?.id;
-  const showBookingInterface = !isOwnProfile;
-
-  useEffect(() => {
-    if (trainerId) {
-      fetchTrainerProfile();
-    }
-  }, [trainerId]);
-
-  const fetchTrainerProfile = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await trainerAvailabilityService.getTrainerProfile(trainerId);
-      
-      if (error) {
-        console.error('Error fetching trainer profile:', error);
-        // Fallback to demo data if database fails
-        setTrainer({
-          id: trainerId,
-          business_name: 'FitLife Training',
-          hourly_rate: 85.00,
-          rating: 4.9,
-          reviewCount: 47,
-          specializations: ['Weight Loss', 'Strength Training', 'Nutrition Coaching'],
-          bio: 'Certified personal trainer with 8+ years of experience helping clients achieve their fitness goals.',
-          location: 'New York',
-          verified: true,
-          user: {
-            name: 'Sarah Johnson'
-          }
-        });
-      } else {
-        setTrainer(data);
-      }
-    } catch (error) {
-      console.error('Error fetching trainer profile:', error);
-      // Fallback to demo data
-      setTrainer({
-        id: trainerId,
-        business_name: 'FitLife Training',
-        hourly_rate: 85.00,
-        rating: 4.9,
-        reviewCount: 47,
-        specializations: ['Weight Loss', 'Strength Training', 'Nutrition Coaching'],
-        bio: 'Certified personal trainer with 8+ years of experience helping clients achieve their fitness goals.',
-        location: 'New York',
-        verified: true,
-        user: {
-          name: 'Sarah Johnson'
-        }
-      });
-    } finally {
-      setLoading(false);
-    }
+  // Demo trainer data
+  const trainer = {
+    id: trainerId || 'trainer-1',
+    name: 'Sarah Johnson',
+    business_name: 'FitLife Training',
+    hourlyRate: 85.00,
+    rating: 4.9,
+    reviewCount: 47,
+    specializations: ['Weight Loss', 'Strength Training', 'Nutrition Coaching'],
+    bio: 'Certified personal trainer with 8+ years of experience helping clients achieve their fitness goals.',
+    location: 'New York',
+    verified: true
   };
+
+  const isOwnProfile = user?.id === trainerId;
+  const showBookingInterface = !isOwnProfile;
 
   const formatPrice = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -81,40 +39,6 @@ const TrainerAvailabilityPage = () => {
       currency: 'USD'
     }).format(amount);
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Navbar />
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading trainer profile...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!trainer) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Navbar />
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Trainer not found</h2>
-            <p className="text-gray-600 mb-4">The trainer you're looking for doesn't exist.</p>
-            <button
-              onClick={() => navigate('/trainer-directory')}
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-            >
-              Back to Directory
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -142,13 +66,11 @@ const TrainerAvailabilityPage = () => {
           <div className="flex items-start justify-between">
             <div className="flex items-center space-x-4">
               <div className="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold">
-                {trainer.user?.name?.charAt(0) || trainer.business_name?.charAt(0) || 'T'}
+                {trainer.name.charAt(0)}
               </div>
               <div>
                 <div className="flex items-center space-x-3 mb-2">
-                  <h1 className="text-2xl font-bold text-gray-900">
-                    {trainer.user?.name || 'Personal Trainer'}
-                  </h1>
+                  <h1 className="text-2xl font-bold text-gray-900">{trainer.name}</h1>
                   {trainer.verified && (
                     <span className="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded-full">
                       Verified
@@ -159,36 +81,32 @@ const TrainerAvailabilityPage = () => {
                 <div className="flex items-center space-x-4 text-sm text-gray-600">
                   <div className="flex items-center space-x-1">
                     <SafeIcon icon={FiStar} className="text-yellow-400" />
-                    <span>{trainer.rating?.toFixed(1) || '5.0'} ({trainer.reviewCount || 0} reviews)</span>
+                    <span>{trainer.rating} ({trainer.reviewCount} reviews)</span>
                   </div>
                   <span>•</span>
-                  <span>{trainer.location || 'Location not specified'}</span>
+                  <span>{trainer.location}</span>
                 </div>
               </div>
             </div>
             
             <div className="text-right">
-              <div className="text-2xl font-bold text-green-600">
-                {formatPrice(trainer.hourly_rate || 75)}
-              </div>
+              <div className="text-2xl font-bold text-green-600">{formatPrice(trainer.hourlyRate)}</div>
               <div className="text-sm text-gray-500">per hour</div>
             </div>
           </div>
 
           <div className="mt-4">
             <p className="text-gray-700 mb-3">{trainer.bio}</p>
-            {trainer.specializations && trainer.specializations.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {trainer.specializations.map((spec, index) => (
-                  <span
-                    key={index}
-                    className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
-                  >
-                    {spec}
-                  </span>
-                ))}
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {trainer.specializations.map((spec, index) => (
+                <span
+                  key={index}
+                  className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"
+                >
+                  {spec}
+                </span>
+              ))}
+            </div>
           </div>
         </motion.div>
 
@@ -229,8 +147,8 @@ const TrainerAvailabilityPage = () => {
           {viewMode === 'calendar' ? (
             <AvailabilityCalendar
               trainerId={trainer.id}
-              trainerName={trainer.user?.name || 'Personal Trainer'}
-              hourlyRate={trainer.hourly_rate || 75}
+              trainerName={trainer.name}
+              hourlyRate={trainer.hourlyRate}
               showBookingInterface={showBookingInterface}
             />
           ) : (
@@ -238,7 +156,6 @@ const TrainerAvailabilityPage = () => {
               trainerId={trainer.id}
               isEditable={isOwnProfile}
               showBookingInterface={showBookingInterface}
-              hourlyRate={trainer.hourly_rate || 75}
             />
           )}
         </motion.div>
@@ -255,7 +172,7 @@ const TrainerAvailabilityPage = () => {
               <div>
                 <h3 className="text-xl font-bold mb-2">Ready to Start Your Fitness Journey?</h3>
                 <p className="text-blue-100">
-                  Book a session with {trainer.user?.name || trainer.business_name} and take the first step towards your goals.
+                  Book a session with {trainer.name} and take the first step towards your goals.
                 </p>
               </div>
               <div className="flex space-x-3">

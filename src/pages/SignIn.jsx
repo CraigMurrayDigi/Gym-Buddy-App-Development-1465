@@ -9,65 +9,58 @@ import * as FiIcons from 'react-icons/fi';
 const { FiDumbbell, FiMail, FiLock, FiEye, FiEyeOff, FiShield, FiAlertTriangle, FiBuilding, FiAward } = FiIcons;
 
 const SignIn = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({
+    email: '',
+    password: ''
+  });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  
   const { signIn } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
   };
 
-  const handleDemoLogin = () => {
-    setFormData({ email: 'test@example.com', password: 'password123' });
-  };
-
-  const handleAdminLogin = () => {
-    setFormData({ email: 'admin@gymbuddy.com', password: 'admin123' });
-  };
-
-  const handleModeratorLogin = () => {
-    setFormData({ email: 'moderator@gymbuddy.com', password: 'moderator123' });
-  };
-
-  const handleGymLogin = () => {
-    setFormData({ email: 'gym@example.com', password: 'gym123' });
-  };
-
-  const handleTrainerLogin = () => {
-    setFormData({ email: 'trainer@example.com', password: 'trainer123' });
+  const handleDemoLogin = (email, password) => {
+    setFormData({ email, password });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!formData.email || !formData.password) {
       toast.error('Please fill in all fields');
       return;
     }
 
     setLoading(true);
-    try {
-      console.log('Attempting to sign in with:', formData.email);
-      const { user, error } = await signIn(formData.email, formData.password);
 
+    try {
+      console.log('🔐 Attempting to sign in with:', formData.email);
+      
+      const { user, error } = await signIn(formData.email, formData.password);
+      
       if (error) {
-        console.error('Sign in failed:', error);
+        console.error('❌ Sign in failed:', error);
         toast.error(error);
       } else if (user) {
-        console.log('Sign in successful for:', user.email);
-        const welcomeMessage = user.role === 'admin' 
-          ? 'Welcome back, Admin!' 
-          : user.role === 'moderator' 
-          ? 'Welcome back, Moderator!' 
-          : user.account_type === 'gym_owner' 
-          ? 'Welcome back to your gym dashboard!'
-          : user.account_type === 'personal_trainer'
-          ? 'Welcome back to your trainer dashboard!'
-          : 'Welcome back!';
-
+        console.log('✅ Sign in successful for:', user.email || formData.email);
+        
+        // Determine welcome message based on user type
+        const welcomeMessage = 
+          user.role === 'admin' ? 'Welcome back, Admin!' :
+          user.role === 'moderator' ? 'Welcome back, Moderator!' :
+          user.account_type === 'gym_owner' ? 'Welcome back to your gym dashboard!' :
+          user.account_type === 'personal_trainer' ? 'Welcome back to your trainer dashboard!' :
+          'Welcome back!';
+        
         toast.success(welcomeMessage);
-
+        
         // Navigate based on account type
         if (user.account_type === 'gym_owner') {
           navigate('/gym-dashboard');
@@ -78,7 +71,7 @@ const SignIn = () => {
         }
       }
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('❌ Sign in error:', error);
       toast.error('Failed to sign in. Please try again.');
     } finally {
       setLoading(false);
@@ -174,7 +167,7 @@ const SignIn = () => {
               </div>
               <button
                 type="button"
-                onClick={handleDemoLogin}
+                onClick={() => handleDemoLogin('test@example.com', 'password123')}
                 className="mt-3 w-full bg-blue-100 text-blue-800 py-2 px-4 rounded-lg text-sm font-medium hover:bg-blue-200 transition-colors"
               >
                 Use Demo Account
@@ -192,7 +185,7 @@ const SignIn = () => {
               </div>
               <button
                 type="button"
-                onClick={handleTrainerLogin}
+                onClick={() => handleDemoLogin('trainer@example.com', 'trainer123')}
                 className="mt-3 w-full bg-green-100 text-green-800 py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-200 transition-colors"
               >
                 Trainer Dashboard Login
@@ -210,7 +203,7 @@ const SignIn = () => {
               </div>
               <button
                 type="button"
-                onClick={handleGymLogin}
+                onClick={() => handleDemoLogin('gym@example.com', 'gym123')}
                 className="mt-3 w-full bg-purple-100 text-purple-800 py-2 px-4 rounded-lg text-sm font-medium hover:bg-purple-200 transition-colors"
               >
                 Gym Dashboard Login
@@ -228,7 +221,7 @@ const SignIn = () => {
               </div>
               <button
                 type="button"
-                onClick={handleModeratorLogin}
+                onClick={() => handleDemoLogin('moderator@gymbuddy.com', 'moderator123')}
                 className="mt-3 w-full bg-yellow-100 text-yellow-800 py-2 px-4 rounded-lg text-sm font-medium hover:bg-yellow-200 transition-colors"
               >
                 Moderator Login
@@ -246,7 +239,7 @@ const SignIn = () => {
               </div>
               <button
                 type="button"
-                onClick={handleAdminLogin}
+                onClick={() => handleDemoLogin('admin@gymbuddy.com', 'admin123')}
                 className="mt-3 w-full bg-red-100 text-red-800 py-2 px-4 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors"
               >
                 Admin Login
